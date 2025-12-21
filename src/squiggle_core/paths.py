@@ -67,3 +67,7 @@ def matches_path(run_id: str) -> Path:
 
 def attention_summary_path(run_id: str) -> Path:
     return runs_root() / "attention_summary" / f"{run_id}.parquet"
+
+def probe_fixed_path(run_id: str) -> Path:
+    return run_dir(run_id) / "probe_fixed.pt"
+    
