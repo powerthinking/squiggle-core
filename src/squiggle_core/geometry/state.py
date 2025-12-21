@@ -79,3 +79,32 @@ def compute_effective_rank(tensor_or_path: TensorOrPath, max_rows: int = 4096) -
 
     r_eff = (num / den).item()
     return float(r_eff)
+
+def compute_topk_mass(tensor_or_path: TensorOrPath, k: int = 8, max_rows: int = 4096) -> float:
+    """
+    Compute mass fraction of top-k singular values:
+        mass_k = sum_{i<=k} s_i / sum_i s_i
+    where s are singular values of centered X.
+
+    Returns a float in (0, 1].
+    """
+    if isinstance(tensor_or_path, (str, Path)):
+        x = torch.load(str(tensor_or_path), map_location="cpu")
+    else:
+        x = tensor_or_path
+
+    if not isinstance(x, torch.Tensor):
+        raise TypeError(f"Expected torch.Tensor, got {type(x)}")
+
+    X = _to_2d_matrix(x).float()
+    X = X - X.mean(dim=0, keepdim=True)
+    X = _downsample_rows(X, max_rows=max_rows)
+
+    s = torch.linalg.svdvals(X)
+    eps = 1e-12
+    s = torch.clamp(s, min=eps)
+
+    k = int(k)
+    k = max(1, min(k, s.numel()))
+    mass = (s[:k].sum() / s.sum()).item()
+    return float(mass)
