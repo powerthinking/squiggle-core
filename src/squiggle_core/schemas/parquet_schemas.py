@@ -303,3 +303,46 @@ def partitions_for(name: str) -> tuple[str, ...]:
     if name not in SCHEMAS:
         raise KeyError(f"Unknown dataset '{name}'. Known: {sorted(SCHEMAS.keys())}")
     return SCHEMAS[name].partitions
+
+# --- Validation helpers (public API) -----------------------------------------
+
+def validate_geometry_state_df(df):
+    """
+    Validate the geometry_state parquet dataframe.
+    Required columns: run_id, step, layer, metric, value
+    """
+    required = ["run_id", "step", "layer", "metric", "value"]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"Geometry state is missing required columns: {missing}\n"
+            f"Found columns: {list(df.columns)}"
+        )
+
+def validate_events_df(df):
+    """
+    Validate the events parquet dataframe.
+
+    Current events schema is interval-based (start_step/end_step), not point-based (step).
+    """
+    required = [
+        "run_id",
+        "event_id",
+        "event_type",
+        "layer",
+        "metric",
+        "start_step",
+        "end_step",
+        "score",
+    ]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"Events df is missing required columns: {missing}\n"
+            f"Found columns: {list(df.columns)}"
+        )
+
+    # Basic sanity checks (optional but helpful)
+    if (df["end_step"] < df["start_step"]).any():
+        bad = df[df["end_step"] < df["start_step"]].head(5)
+        raise ValueError(f"Events contain end_step < start_step. Examples:\n{bad}")
