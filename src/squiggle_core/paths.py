@@ -22,7 +22,7 @@ def data_root() -> Path:
     return (repo_root_from_here() / "data").resolve()
 
 
-# --- Canonical run artifact locations (Epic 0 contract) ---
+# --- Canonical run artifact locations (v2 contract) ---
 
 # There are two classes of artifacts:
 #   (1) Run-scoped files under: runs_root()/runs/<run_id>/...
@@ -30,13 +30,14 @@ def data_root() -> Path:
 #
 #   (2) Global per-run Parquet tables under: runs_root()/<artifact>/<run_id>.parquet
 #       - metrics_scalar, geometry_state, events, etc.
-#
-# V0 canonical choices:
+
+# Canonical choices:
 #   - Reports: runs/<run_id>/reports/report.md
 #   - Captures: runs/<run_id>/captures/step_<N>/*
-#   - Geometry: geometry_state/<run_id>.parquet (long-form: run_id, step, layer, metric, value)
-#   - Events: events/<run_id>.parquet (single-run candidate events in v0)
-#   - analysis_id: NOT part of paths in v0; may appear as a column later.
+#   - Geometry: geometry_state/<run_id>.parquet (analysis artifacts; include v2 spine columns)
+#   - Event candidates (single-run): events_candidates/<run_id>.parquet
+#   - Events (consensus, cross-seed): events/<test_id>.parquet
+#   - analysis_id: stored as a column (not encoded into v2 filenames).
 
 def runs_root() -> Path:
     return data_root() / "runs"
@@ -66,8 +67,12 @@ def geometry_dynamics_path(run_id: str) -> Path:
     return runs_root() / "geometry_dynamics" / f"{run_id}.parquet"
 
 
-def events_path(run_id: str) -> Path:
-    return runs_root() / "events" / f"{run_id}.parquet"
+def events_candidates_path(run_id: str) -> Path:
+    return runs_root() / "events_candidates" / f"{run_id}.parquet"
+
+
+def events_consensus_path(test_id: str) -> Path:
+    return runs_root() / "events" / f"{test_id}.parquet"
 
 
 def signatures_path(run_id: str) -> Path:
@@ -95,4 +100,28 @@ def report_md_path(run_id: str) -> Path:
 
 def probe_fixed_path(run_id: str) -> Path:
     return run_dir(run_id) / "probe_fixed.pt"
+
+
+def probes_dir(run_id: str) -> Path:
+    return run_dir(run_id) / "probes"
+
+
+def probe_dir(run_id: str, probe_name: str) -> Path:
+    return probes_dir(run_id) / probe_name
+
+
+def probe_manifest_path(run_id: str, probe_name: str) -> Path:
+    return probe_dir(run_id, probe_name) / "manifest.json"
+
+
+def probe_captures_dir(run_id: str, probe_name: str) -> Path:
+    return probe_dir(run_id, probe_name) / "captures"
+
+
+def probe_index_path(run_id: str, probe_name: str) -> Path:
+    return probe_dir(run_id, probe_name) / "index.parquet"
+
+
+def probe_stats_path(run_id: str, probe_name: str) -> Path:
+    return probe_dir(run_id, probe_name) / "stats.json"
     

@@ -13,6 +13,12 @@ from typing import Dict, Optional
 
 import pyarrow as pa
 
+from .probe_tables import (
+    probe_captures_index_schema,
+    probe_events_candidates_schema,
+    probe_summaries_schema,
+)
+
 
 # -------------------------
 # Helpers / shared types
@@ -25,6 +31,7 @@ T_I64 = pa.int64()
 T_F32 = pa.float32()
 T_F64 = pa.float64()
 T_TS_US = pa.timestamp("us")
+T_TS_UTC = pa.timestamp("us", tz="UTC")
 
 LIST_I32 = pa.list_(T_I32)
 LIST_I64 = pa.list_(T_I64)
@@ -124,6 +131,9 @@ METRICS_SCALAR = pa.schema(
 GEOMETRY_STATE = pa.schema(
     [
         _field("run_id", T_STRING),
+        _field("analysis_id", T_STRING),
+        _field("schema_version", T_STRING),
+        _field("created_at_utc", T_TS_UTC),
         _field("step", T_I64),
         _field("layer", T_I16),
         _field("metric", T_STRING),
@@ -134,6 +144,9 @@ GEOMETRY_STATE = pa.schema(
 GEOMETRY_DYNAMICS = pa.schema(
     [
         _field("run_id", T_STRING),
+        _field("analysis_id", T_STRING),
+        _field("schema_version", T_STRING),
+        _field("created_at_utc", T_TS_UTC),
         _field("step", T_I64),
         _field("step_prev", T_I64),
         _field("sample_id", T_STRING),
@@ -155,9 +168,12 @@ GEOMETRY_DYNAMICS = pa.schema(
     ]
 )
 
-EVENTS = pa.schema(
+EVENTS_CANDIDATES = pa.schema(
     [
         _field("run_id", T_STRING),
+        _field("analysis_id", T_STRING),
+        _field("schema_version", T_STRING),
+        _field("created_at_utc", T_TS_UTC),
         _field("event_id", T_STRING),
         _field("layer", T_I16),
         _field("metric", T_STRING),
@@ -172,6 +188,9 @@ EVENTS = pa.schema(
 SIGNATURES = pa.schema(
     [
         _field("run_id", T_STRING),
+        _field("analysis_id", T_STRING),
+        _field("schema_version", T_STRING),
+        _field("created_at_utc", T_TS_UTC),
         _field("signature_id", T_STRING),
         _field("sample_id", T_STRING, nullable=True),
         _field("sample_set", T_STRING),
@@ -192,6 +211,9 @@ SIGNATURES = pa.schema(
 MATCHES = pa.schema(
     [
         _field("match_id", T_STRING),
+        _field("analysis_id", T_STRING),
+        _field("schema_version", T_STRING),
+        _field("created_at_utc", T_TS_UTC),
         _field("run_id_a", T_STRING),
         _field("signature_id_a", T_STRING),
         _field("run_id_b", T_STRING),
@@ -252,9 +274,24 @@ SCHEMAS: Dict[str, DatasetSpec] = {
     "metrics_scalar": DatasetSpec("metrics_scalar", METRICS_SCALAR, partitions=("run_id", "metric_name")),
     "geometry_state": DatasetSpec("geometry_state", GEOMETRY_STATE, partitions=("run_id", "metric")),
     "geometry_dynamics": DatasetSpec("geometry_dynamics", GEOMETRY_DYNAMICS, partitions=("run_id", "sample_set", "module")),
-    "events": DatasetSpec("events", EVENTS, partitions=("run_id", "event_type")),
-    "signatures": DatasetSpec("signatures", SIGNATURES, partitions=("run_id", "sample_set")),
-    "matches": DatasetSpec("matches", MATCHES, partitions=("method",)),
+    "events_candidates": DatasetSpec("events_candidates", EVENTS_CANDIDATES, partitions=("run_id", "event_type")),
+    "probe_captures_index": DatasetSpec(
+        "probe_captures_index",
+        probe_captures_index_schema,
+        partitions=("run_id", "probe_name"),
+    ),
+    "probe_summaries": DatasetSpec(
+        "probe_summaries",
+        probe_summaries_schema,
+        partitions=("run_id", "analysis_id", "probe_name"),
+    ),
+    "probe_events_candidates": DatasetSpec(
+        "probe_events_candidates",
+        probe_events_candidates_schema,
+        partitions=("run_id", "analysis_id", "probe_name", "event_type"),
+    ),
+    "signatures": DatasetSpec("signatures", SIGNATURES, partitions=("run_id", "analysis_id", "sample_set")),
+    "matches": DatasetSpec("matches", MATCHES, partitions=("analysis_id", "method")),
     # optional
     "embeddings": DatasetSpec("embeddings", EMBEDDINGS, partitions=("run_id", "module", "sample_set")),
     "attention_summary": DatasetSpec("attention_summary", ATTENTION_SUMMARY, partitions=("run_id", "sample_set", "layer")),
@@ -286,9 +323,18 @@ def partitions_for(name: str) -> tuple[str, ...]:
 def validate_geometry_state_df(df):
     """
     Validate the geometry_state parquet dataframe.
-    Required columns: run_id, step, layer, metric, value
+    Required columns: run_id, analysis_id, schema_version, created_at_utc, step, layer, metric, value
     """
-    required = ["run_id", "step", "layer", "metric", "value"]
+    required = [
+        "run_id",
+        "analysis_id",
+        "schema_version",
+        "created_at_utc",
+        "step",
+        "layer",
+        "metric",
+        "value",
+    ]
     missing = [c for c in required if c not in df.columns]
     if missing:
         raise ValueError(
@@ -298,12 +344,15 @@ def validate_geometry_state_df(df):
 
 def validate_events_df(df):
     """
-    Validate the events parquet dataframe.
+    Validate the events_candidates parquet dataframe.
 
-    V0 events are interval-based (start_step/end_step) with a canonical timestamp (step).
+    Events candidates are interval-based (start_step/end_step) with a canonical timestamp (step).
     """
     required = [
         "run_id",
+        "analysis_id",
+        "schema_version",
+        "created_at_utc",
         "event_id",
         "event_type",
         "layer",

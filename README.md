@@ -22,7 +22,7 @@ Each run is identified by a deterministic `run_id` and produces:
 - `metrics_scalar/<run_id>.parquet`
 - `runs/<run_id>/captures/step_*/`
 - `geometry_state/<run_id>.parquet`
-- `events/<run_id>.parquet`
+- `events_candidates/<run_id>.parquet`
 - `runs/<run_id>/reports/report.md`
 
 All other repos write *through* these paths.
