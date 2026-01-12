@@ -20,10 +20,10 @@ Each run is identified by a deterministic `run_id` and produces:
 
 - `runs/<run_id>/meta.json`
 - `metrics_scalar/<run_id>.parquet`
-- `samples/<run_id>/step_*/`
+- `runs/<run_id>/captures/step_*/`
 - `geometry_state/<run_id>.parquet`
 - `events/<run_id>.parquet`
-- `runs/<run_id>/report.md`
+- `runs/<run_id>/reports/report.md`
 
 All other repos write *through* these paths.
 

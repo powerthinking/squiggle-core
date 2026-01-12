@@ -125,27 +125,9 @@ GEOMETRY_STATE = pa.schema(
     [
         _field("run_id", T_STRING),
         _field("step", T_I64),
-        _field("sample_id", T_STRING),
-        _field("sample_set", T_STRING),
-        _field("split", T_STRING),
         _field("layer", T_I16),
-        _field("module", T_STRING),
-        _field("d", T_I32),
-        _field("l2_norm", T_F32),
-        _field("mean", T_F32),
-        _field("var", T_F32),
-        _field("sparsity_l0_frac", T_F32, nullable=True),
-        _field("kurtosis", T_F32, nullable=True),
-        _field("skew", T_F32, nullable=True),
-        _field("eff_rank", T_F32),
-        _field("sv_entropy", T_F32),
-        _field("top_sv_frac_1", T_F32, nullable=True),
-        _field("top_sv_frac_4", T_F32, nullable=True),
-        _field("top_sv_frac_16", T_F32, nullable=True),
-        _field("participation_ratio", T_F32, nullable=True),
-        _field("subspace_id", T_STRING, nullable=True),
-        _field("proj_norm_topk", T_F32, nullable=True),
-        _field("spectrum_bins", LIST_F32, nullable=True),
+        _field("metric", T_STRING),
+        _field("value", T_F64),
     ]
 )
 
@@ -177,18 +159,13 @@ EVENTS = pa.schema(
     [
         _field("run_id", T_STRING),
         _field("event_id", T_STRING),
+        _field("layer", T_I16),
+        _field("metric", T_STRING),
         _field("step", T_I64),
-        _field("step_start", T_I64, nullable=True),
-        _field("step_end", T_I64, nullable=True),
-        _field("sample_id", T_STRING, nullable=True),
-        _field("sample_set", T_STRING),
-        _field("layer", T_I16, nullable=True),
-        _field("module", T_STRING, nullable=True),
+        _field("start_step", T_I64, nullable=True),
+        _field("end_step", T_I64, nullable=True),
         _field("event_type", T_STRING),
         _field("score", T_F32),
-        _field("threshold", T_F32, nullable=True),
-        _field("detector_version", T_STRING, nullable=True),
-        _field("payload_json", T_STRING, nullable=True),
     ]
 )
 
@@ -273,7 +250,7 @@ SCHEMAS: Dict[str, DatasetSpec] = {
     "checkpoints": DatasetSpec("checkpoints", CHECKPOINTS, partitions=("run_id",)),
     "samples": DatasetSpec("samples", SAMPLES, partitions=("sample_set", "split")),
     "metrics_scalar": DatasetSpec("metrics_scalar", METRICS_SCALAR, partitions=("run_id", "metric_name")),
-    "geometry_state": DatasetSpec("geometry_state", GEOMETRY_STATE, partitions=("run_id", "sample_set", "module")),
+    "geometry_state": DatasetSpec("geometry_state", GEOMETRY_STATE, partitions=("run_id", "metric")),
     "geometry_dynamics": DatasetSpec("geometry_dynamics", GEOMETRY_DYNAMICS, partitions=("run_id", "sample_set", "module")),
     "events": DatasetSpec("events", EVENTS, partitions=("run_id", "event_type")),
     "signatures": DatasetSpec("signatures", SIGNATURES, partitions=("run_id", "sample_set")),
@@ -323,7 +300,7 @@ def validate_events_df(df):
     """
     Validate the events parquet dataframe.
 
-    Current events schema is interval-based (start_step/end_step), not point-based (step).
+    V0 events are interval-based (start_step/end_step) with a canonical timestamp (step).
     """
     required = [
         "run_id",
@@ -331,6 +308,7 @@ def validate_events_df(df):
         "event_type",
         "layer",
         "metric",
+        "step",
         "start_step",
         "end_step",
         "score",

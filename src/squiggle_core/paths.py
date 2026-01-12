@@ -24,6 +24,20 @@ def data_root() -> Path:
 
 # --- Canonical run artifact locations (Epic 0 contract) ---
 
+# There are two classes of artifacts:
+#   (1) Run-scoped files under: runs_root()/runs/<run_id>/...
+#       - meta.json, probes, reports, captures (tensors + manifests)
+#
+#   (2) Global per-run Parquet tables under: runs_root()/<artifact>/<run_id>.parquet
+#       - metrics_scalar, geometry_state, events, etc.
+#
+# V0 canonical choices:
+#   - Reports: runs/<run_id>/reports/report.md
+#   - Captures: runs/<run_id>/captures/step_<N>/*
+#   - Geometry: geometry_state/<run_id>.parquet (long-form: run_id, step, layer, metric, value)
+#   - Events: events/<run_id>.parquet (single-run candidate events in v0)
+#   - analysis_id: NOT part of paths in v0; may appear as a column later.
+
 def runs_root() -> Path:
     return data_root() / "runs"
 
@@ -44,24 +58,12 @@ def metrics_wide_path(run_id: str) -> Path:
     return runs_root() / "metrics_wide" / f"{run_id}.parquet"
 
 
-def samples_dir(run_id: str) -> Path:
-    return captures_dir(run_id)
-
-
 def geometry_state_path(run_id: str) -> Path:
     return runs_root() / "geometry_state" / f"{run_id}.parquet"
 
 
-def geometry_state_long_path(run_id: str) -> Path:
-    return runs_root() / "geometry_state_long" / f"{run_id}.parquet"
-
-
 def geometry_dynamics_path(run_id: str) -> Path:
     return runs_root() / "geometry_dynamics" / f"{run_id}.parquet"
-
-
-def geometry_dynamics_long_path(run_id: str) -> Path:
-    return runs_root() / "geometry_dynamics_long" / f"{run_id}.parquet"
 
 
 def events_path(run_id: str) -> Path:
