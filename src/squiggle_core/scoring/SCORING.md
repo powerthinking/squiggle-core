@@ -166,6 +166,19 @@ Per event:
 
 ---
 
+## Baselines (implementation notes)
+
+Baselines may be computed on the fly (e.g., from another run) or persisted as artifacts.
+
+Recommended artifact form:
+- Store baseline size statistics and baseline volatility per metric in a versioned JSON.
+- Canonical location (when using `squiggle_core.paths`):
+  - `data/runs/scoring_baselines/<baseline_id>.json`
+
+This enables scoring one run against a designated baseline without recomputing baselines each time.
+
+---
+
 ## Suggested Output Schema
 
 A scored event should log:
@@ -182,6 +195,10 @@ A scored event should log:
   - `V_event_i`, `V_baseline_i`, `R_i` (if available)
 
 This supports later tuning and ablation analysis.
+
+Implementation note:
+- For single-metric events, per-metric diagnostics can be stored as scalar columns.
+- For multi-metric (“composite”) events, per-metric diagnostics can be stored as maps (e.g., JSON-encoded dictionaries) keyed by metric name.
 
 ---
 

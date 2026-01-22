@@ -182,25 +182,27 @@ EVENTS_CANDIDATES = pa.schema(
         _field("end_step", T_I64, nullable=True),
         _field("event_type", T_STRING),
         _field("score", T_F32),
-
-        # Scoring breakdown (v0; optional)
         _field("magnitude", T_F32, nullable=True),
         _field("structure_modifier", T_F32, nullable=True),
         _field("magnitude_eff", T_F32, nullable=True),
         _field("coherence", T_F32, nullable=True),
         _field("novelty", T_F32, nullable=True),
-
-        # Per-event metric diagnostics (for v0 change_point events, this is the single metric scored)
         _field("metric_size", T_F32, nullable=True),
         _field("metric_z", T_F32, nullable=True),
         _field("baseline_median", T_F32, nullable=True),
         _field("baseline_mad", T_F32, nullable=True),
-
-        # Optional volatility diagnostics
         _field("volatility_event", T_F32, nullable=True),
         _field("volatility_baseline", T_F32, nullable=True),
         _field("volatility_ratio", T_F32, nullable=True),
         _field("volatility_ratio_agg", T_F32, nullable=True),
+
+        _field("metric_sizes_json", T_STRING, nullable=True),
+        _field("metric_z_json", T_STRING, nullable=True),
+        _field("baseline_median_json", T_STRING, nullable=True),
+        _field("baseline_mad_json", T_STRING, nullable=True),
+        _field("volatility_event_json", T_STRING, nullable=True),
+        _field("volatility_baseline_json", T_STRING, nullable=True),
+        _field("volatility_ratio_json", T_STRING, nullable=True),
     ]
 )
 

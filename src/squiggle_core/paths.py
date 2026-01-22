@@ -124,4 +124,11 @@ def probe_index_path(run_id: str, probe_name: str) -> Path:
 
 def probe_stats_path(run_id: str, probe_name: str) -> Path:
     return probe_dir(run_id, probe_name) / "stats.json"
-    
+
+
+def scoring_baselines_dir() -> Path:
+    return runs_root() / "scoring_baselines"
+
+
+def scoring_baseline_path(baseline_id: str) -> Path:
+    return scoring_baselines_dir() / f"{baseline_id}.json"
