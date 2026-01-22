@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -215,3 +216,48 @@ def load_baseline_with_volatility(
 
     vol_baseline: Dict[str, float] = {str(k): float(v) for k, v in vb.items()}
     return source_run_id, baselines, vol_baseline
+
+
+def _cmd_write(args: argparse.Namespace) -> int:
+    p = write_baseline_from_run(
+        run_id=str(args.run_id),
+        baseline_id=(str(args.baseline_id) if args.baseline_id is not None else None),
+        rank_threshold=float(args.rank_threshold),
+        mass_threshold=float(args.mass_threshold),
+        window_radius_steps=int(args.window_radius_steps),
+    )
+    print(str(p))
+    return 0
+
+
+def _cmd_show(args: argparse.Namespace) -> int:
+    source_run_id, baselines, vol = load_baseline_with_volatility(baseline_id=str(args.baseline_id))
+    print(f"baseline_id={args.baseline_id}")
+    print(f"source_run_id={source_run_id}")
+    print(f"metrics={len(baselines)}")
+    print(f"metrics_with_volatility={len(vol)}")
+    return 0
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    p = argparse.ArgumentParser(prog="python -m squiggle_core.scoring.baselines")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    w = sub.add_parser("write")
+    w.add_argument("--run-id", required=True)
+    w.add_argument("--baseline-id", default=None)
+    w.add_argument("--rank-threshold", type=float, default=0.2)
+    w.add_argument("--mass-threshold", type=float, default=0.03)
+    w.add_argument("--window-radius-steps", type=int, default=5)
+    w.set_defaults(func=_cmd_write)
+
+    s = sub.add_parser("show")
+    s.add_argument("--baseline-id", required=True)
+    s.set_defaults(func=_cmd_show)
+
+    args = p.parse_args(argv)
+    return int(args.func(args))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
