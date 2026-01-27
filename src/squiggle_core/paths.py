@@ -132,3 +132,21 @@ def scoring_baselines_dir() -> Path:
 
 def scoring_baseline_path(baseline_id: str) -> Path:
     return scoring_baselines_dir() / f"{baseline_id}.json"
+
+
+# --- AIMO / Math Corpus candidate pool paths ---
+
+
+def candidate_pool_root() -> Path:
+    """Root directory for AIMO candidate pool work product (slices, classifications, etc.)."""
+    return data_root() / "candidate_pool"
+
+
+def candidate_pool_slices_dir() -> Path:
+    """Directory containing candidate pool slices."""
+    return candidate_pool_root() / "slices"
+
+
+def candidate_pool_slice_dir(slice_id: str) -> Path:
+    """Directory for a specific slice."""
+    return candidate_pool_slices_dir() / slice_id
