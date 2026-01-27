@@ -150,3 +150,13 @@ def candidate_pool_slices_dir() -> Path:
 def candidate_pool_slice_dir(slice_id: str) -> Path:
     """Directory for a specific slice."""
     return candidate_pool_slices_dir() / slice_id
+
+
+def training_splits_dir() -> Path:
+    """Directory containing training splits (train/val/val_family)."""
+    return candidate_pool_root() / "splits"
+
+
+def training_split_dir(split_id: str) -> Path:
+    """Directory for a specific training split."""
+    return training_splits_dir() / split_id

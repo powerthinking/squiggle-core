@@ -108,3 +108,40 @@ def compute_topk_mass(tensor_or_path: TensorOrPath, k: int = 8, max_rows: int = 
     k = max(1, min(k, s.numel()))
     mass = (s[:k].sum() / s.sum()).item()
     return float(mass)
+
+
+def compute_sv_entropy(tensor_or_path: TensorOrPath, max_rows: int = 4096) -> float:
+    """
+    Compute Shannon entropy of normalized singular values.
+
+    H = -sum(p_i * log(p_i)) where p_i = s_i / sum(s_j)
+
+    Higher entropy means singular values are more evenly distributed.
+    Lower entropy means concentration in fewer dimensions.
+
+    Returns:
+      float >= 0 (unbounded, but typically 0-5 for most activations)
+    """
+    if isinstance(tensor_or_path, (str, Path)):
+        x = torch.load(str(tensor_or_path), map_location="cpu")
+    else:
+        x = tensor_or_path
+
+    if not isinstance(x, torch.Tensor):
+        raise TypeError(f"Expected torch.Tensor, got {type(x)}")
+
+    X = _to_2d_matrix(x).float()
+    X = X - X.mean(dim=0, keepdim=True)
+    X = _downsample_rows(X, max_rows=max_rows)
+
+    s = torch.linalg.svdvals(X)
+
+    eps = 1e-12
+    s = torch.clamp(s, min=eps)
+
+    # Normalize to probability distribution
+    p = s / s.sum()
+
+    # Shannon entropy
+    entropy = -(p * torch.log(p)).sum().item()
+    return float(entropy)
