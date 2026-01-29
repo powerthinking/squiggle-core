@@ -9,7 +9,7 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict
 
 import pyarrow as pa
 
@@ -18,7 +18,6 @@ from .probe_tables import (
     probe_events_candidates_schema,
     probe_summaries_schema,
 )
-
 
 # -------------------------
 # Helpers / shared types
@@ -223,6 +222,25 @@ EVENTS_CANDIDATES = pa.schema(
     ]
 )
 
+EVENTS_CONSENSUS = pa.schema(
+    [
+        _field("test_id", T_STRING),
+        _field("schema_version", T_STRING),
+        _field("created_at_utc", T_TS_UTC),
+        _field("consensus_event_id", T_STRING),
+        _field("layer", T_I16),
+        _field("metric", T_STRING),
+        _field("mean_step", T_F64),
+        _field("step_spread", T_F64),
+        _field("seed_count", T_I32),
+        _field("seed_fraction", T_F64),
+        _field("mean_score", T_F32),
+        _field("direction", T_STRING),  # "increase" or "decrease"
+        _field("constituent_run_ids", LIST_STR),
+        _field("constituent_event_ids", LIST_STR),
+    ]
+)
+
 SIGNATURES = pa.schema(
     [
         _field("run_id", T_STRING),
@@ -313,6 +331,7 @@ SCHEMAS: Dict[str, DatasetSpec] = {
     "geometry_state": DatasetSpec("geometry_state", GEOMETRY_STATE, partitions=("run_id", "metric")),
     "geometry_dynamics": DatasetSpec("geometry_dynamics", GEOMETRY_DYNAMICS, partitions=("run_id", "sample_set", "module")),
     "events_candidates": DatasetSpec("events_candidates", EVENTS_CANDIDATES, partitions=("run_id", "event_type")),
+    "events_consensus": DatasetSpec("events_consensus", EVENTS_CONSENSUS, partitions=("test_id",)),
     "probe_captures_index": DatasetSpec(
         "probe_captures_index",
         probe_captures_index_schema,
@@ -411,3 +430,40 @@ def validate_events_df(df):
     if (df["end_step"] < df["start_step"]).any():
         bad = df[df["end_step"] < df["start_step"]].head(5)
         raise ValueError(f"Events contain end_step < start_step. Examples:\n{bad}")
+
+
+def validate_consensus_events_df(df):
+    """
+    Validate the consensus events parquet dataframe.
+
+    Consensus events are seed-invariant events extracted from multiple runs.
+    """
+    required = [
+        "test_id",
+        "schema_version",
+        "created_at_utc",
+        "consensus_event_id",
+        "layer",
+        "metric",
+        "mean_step",
+        "step_spread",
+        "seed_count",
+        "seed_fraction",
+        "mean_score",
+        "direction",
+        "constituent_run_ids",
+    ]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"Consensus events df is missing required columns: {missing}\n"
+            f"Found columns: {list(df.columns)}"
+        )
+
+    # Sanity checks
+    if (df["seed_fraction"] < 0).any() or (df["seed_fraction"] > 1).any():
+        raise ValueError("seed_fraction must be in [0, 1]")
+
+    if not df["direction"].isin(["increase", "decrease"]).all():
+        bad_dirs = df[~df["direction"].isin(["increase", "decrease"])]["direction"].unique()
+        raise ValueError(f"direction must be 'increase' or 'decrease', found: {bad_dirs}")

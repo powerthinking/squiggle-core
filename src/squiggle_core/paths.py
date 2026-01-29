@@ -189,6 +189,49 @@ def scoring_baseline_path(baseline_id: str) -> Path:
     return scoring_baselines_dir() / f"{baseline_id}.json"
 
 
+# --- Test (multi-seed) artifact paths ---
+
+
+def tests_root() -> Path:
+    """Root directory for test (multi-seed run collection) artifacts."""
+    return data_root() / "tests"
+
+
+def test_dir(test_id: str) -> Path:
+    """Directory for a specific test."""
+    return tests_root() / test_id
+
+
+def test_manifest_path(test_id: str) -> Path:
+    """Path to test manifest (test.yaml)."""
+    return test_dir(test_id) / "test.yaml"
+
+
+def test_outputs_dir(test_id: str) -> Path:
+    """Path to test outputs directory."""
+    return test_dir(test_id) / "outputs"
+
+
+def test_plots_dir(test_id: str) -> Path:
+    """Path to test plots directory."""
+    return test_outputs_dir(test_id) / "plots"
+
+
+def consensus_report_path(test_id: str) -> Path:
+    """Path to consensus report markdown."""
+    return test_outputs_dir(test_id) / "consensus_report.md"
+
+
+def consensus_llm_analysis_path(test_id: str) -> Path:
+    """Path to consensus LLM analysis JSON."""
+    return test_outputs_dir(test_id) / "consensus_report.llm_analysis.json"
+
+
+def test_log_path(test_id: str) -> Path:
+    """Path to test execution log."""
+    return test_dir(test_id) / "test.log"
+
+
 # --- AIMO / Math Corpus candidate pool paths ---
 
 
