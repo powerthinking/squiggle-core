@@ -168,6 +168,8 @@ GEOMETRY_DYNAMICS = pa.schema(
     ]
 )
 
+T_I8 = pa.int8()
+
 EVENTS_CANDIDATES = pa.schema(
     [
         _field("run_id", T_STRING),
@@ -191,11 +193,26 @@ EVENTS_CANDIDATES = pa.schema(
         _field("metric_z", T_F32, nullable=True),
         _field("baseline_median", T_F32, nullable=True),
         _field("baseline_mad", T_F32, nullable=True),
+        # New fields for direction-aware matching (v2.1)
+        _field("polarity", T_I8, nullable=True),  # +1 (increase) or -1 (decrease)
+        _field("delta", T_F32, nullable=True),  # Signed magnitude (post_mean - pre_mean)
+        _field("normalized_score", T_F32, nullable=True),  # Per-series percentile rank [0,1]
+        _field("event_rank_in_series", T_I16, nullable=True),  # 1-indexed rank within (layer, metric)
+        _field("series_id", T_STRING, nullable=True),  # Canonical: {run_id}:{layer}:{metric}
+        # Local baseline fields (for temporal context)
+        _field("local_baseline_median", T_F32, nullable=True),
+        _field("local_baseline_mad", T_F32, nullable=True),
+        _field("local_z_score", T_F32, nullable=True),
+        _field("baseline_scope", T_STRING, nullable=True),  # "local" or "global"
+        # Event phase classification
+        _field("event_phase", T_STRING, nullable=True),  # "shaping", "transition", "locking"
+        _field("phase_progress", T_F32, nullable=True),  # 0.0-1.0 position in training
+        # Volatility fields
         _field("volatility_event", T_F32, nullable=True),
         _field("volatility_baseline", T_F32, nullable=True),
         _field("volatility_ratio", T_F32, nullable=True),
         _field("volatility_ratio_agg", T_F32, nullable=True),
-
+        # Composite event JSON fields
         _field("metric_sizes_json", T_STRING, nullable=True),
         _field("metric_z_json", T_STRING, nullable=True),
         _field("baseline_median_json", T_STRING, nullable=True),

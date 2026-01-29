@@ -67,8 +67,34 @@ def geometry_dynamics_path(run_id: str) -> Path:
     return runs_root() / "geometry_dynamics" / f"{run_id}.parquet"
 
 
-def events_candidates_path(run_id: str) -> Path:
+def events_candidates_path(run_id: str, analysis_id: str | None = None) -> Path:
+    """
+    Path to events candidates parquet.
+
+    Args:
+        run_id: The run identifier
+        analysis_id: Optional analysis version. If provided, stores in subdirectory:
+                     events_candidates/<run_id>/<analysis_id>.parquet
+                     If None, uses legacy path: events_candidates/<run_id>.parquet
+    """
+    if analysis_id:
+        return runs_root() / "events_candidates" / run_id / f"{analysis_id}.parquet"
     return runs_root() / "events_candidates" / f"{run_id}.parquet"
+
+
+def detection_summary_path(run_id: str, analysis_id: str | None = None) -> Path:
+    """
+    Path to detection summary parquet.
+
+    Args:
+        run_id: The run identifier
+        analysis_id: Optional analysis version. If provided, stores in subdirectory:
+                     detection_summary/<run_id>/<analysis_id>.parquet
+                     If None, uses legacy path: detection_summary/<run_id>.parquet
+    """
+    if analysis_id:
+        return runs_root() / "detection_summary" / run_id / f"{analysis_id}.parquet"
+    return runs_root() / "detection_summary" / f"{run_id}.parquet"
 
 
 def events_consensus_path(test_id: str) -> Path:
@@ -91,12 +117,41 @@ def attention_summary_path(run_id: str) -> Path:
     return runs_root() / "attention_summary" / f"{run_id}.parquet"
 
 
-def reports_dir(run_id: str) -> Path:
-    return run_dir(run_id) / "reports"
+def reports_dir(run_id: str, analysis_id: str | None = None) -> Path:
+    """
+    Path to reports directory.
+
+    Args:
+        run_id: The run identifier
+        analysis_id: Optional analysis version. If provided, stores in subdirectory:
+                     runs/<run_id>/reports/<analysis_id>/
+    """
+    base = run_dir(run_id) / "reports"
+    if analysis_id:
+        return base / analysis_id
+    return base
 
 
-def report_md_path(run_id: str) -> Path:
-    return reports_dir(run_id) / "report.md"
+def report_md_path(run_id: str, analysis_id: str | None = None) -> Path:
+    """
+    Path to report.md file.
+
+    Args:
+        run_id: The run identifier
+        analysis_id: Optional analysis version
+    """
+    return reports_dir(run_id, analysis_id) / "report.md"
+
+def llm_analysis_path(run_id: str, analysis_id: str | None = None) -> Path:
+    """
+    Path to LLM analysis JSON file.
+
+    Args:
+        run_id: The run identifier
+        analysis_id: Optional analysis version
+    """
+    return reports_dir(run_id, analysis_id) / "llm_analysis.json"
+
 
 def probe_fixed_path(run_id: str) -> Path:
     return run_dir(run_id) / "probe_fixed.pt"
@@ -160,3 +215,44 @@ def training_splits_dir() -> Path:
 def training_split_dir(split_id: str) -> Path:
     """Directory for a specific training split."""
     return training_splits_dir() / split_id
+
+
+# --- Analysis ID utilities ---
+
+
+def generate_analysis_id(
+    warmup_fraction: float = 0.1,
+    max_pre_warmup: int = 1,
+    peak_suppression_radius: int = 15,
+    max_events_per_series: int = 5,
+    adaptive_k: float = 2.5,
+    **kwargs,
+) -> str:
+    """
+    Generate a deterministic analysis_id from detection parameters.
+
+    The ID encodes the key parameters that affect event detection results.
+    Format: w{warmup_fraction*100}_p{max_pre_warmup}_r{radius}_e{max_events}_k{adaptive_k*10}
+
+    Example: "w10_p1_r15_e5_k25" for default parameters
+    """
+    # Convert to integers for cleaner IDs
+    w = int(warmup_fraction * 100)
+    k = int(adaptive_k * 10)
+
+    return f"w{w}_p{max_pre_warmup}_r{peak_suppression_radius}_e{max_events_per_series}_k{k}"
+
+
+def list_analysis_ids(run_id: str) -> list[str]:
+    """
+    List all analysis_ids available for a given run.
+
+    Returns analysis IDs found in events_candidates/<run_id>/ directory.
+    """
+    analysis_dir = runs_root() / "events_candidates" / run_id
+    if not analysis_dir.exists():
+        return []
+
+    return sorted(
+        p.stem for p in analysis_dir.glob("*.parquet")
+    )
